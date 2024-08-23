@@ -5,6 +5,8 @@ results/
 # IDEs
 .vscode/
 .pycharm/
+.idea/
+2024-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

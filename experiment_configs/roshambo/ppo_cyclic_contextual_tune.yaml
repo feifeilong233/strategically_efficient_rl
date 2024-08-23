@@ -10,7 +10,7 @@ cyclic_contextual_ppo_tune:
         env: roshambo
         env_config:
             transitive_actions: 0
-            cyclic_actions: 9
+            cyclic_actions: 3
             num_contexts: 8
             eval_steps: 100
         # === PPO ===

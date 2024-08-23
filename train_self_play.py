@@ -8,6 +8,7 @@ import argparse
 from collections import defaultdict
 import yaml
 
+import numpy as np
 import ray
 from ray.tune import run_experiments
 from ray.tune.registry import ENV_CREATOR, _global_registry
@@ -112,13 +113,22 @@ def parse_args():
                         help="path to save training results")
     parser.add_argument("--num-cpus", type=int, default=7,
                         help="the maximum number of CPUs ray is allowed to us, useful for running locally")
-    parser.add_argument("--num-gpus", type=int, default=0,
+    parser.add_argument("--num-gpus", type=int, default=1,
                         help="the maximum number of GPUs ray is allowed to use")
-    parser.add_argument("--num-workers", type=int, default=0,
+    parser.add_argument("--num-workers", type=int, default=5,
                         help="the number of parallel workers per experiment")
     
     return parser.parse_args()
 
+def nash_conv(trainer, eval_workers):
+    local_worker = eval_workers.local_worker()
+
+    env = local_worker.env_creator(local_worker.policy_config["env_config"])
+    mapping_fn = local_worker.policy_config["multiagent"]["policy_mapping_fn"]
+
+    if hasattr(env, "nash_conv"):
+        policy_dict = {pid: local_worker.get_policy(mapping_fn(pid)) for pid in env.action_space_dict.keys()}
+        return env.nash_conv(policy_dict)
 
 def log_intrinsic(info):
     episode = info["episode"]
@@ -204,6 +214,11 @@ def main(args):
 
         # Set num workers
         experiment["config"]["num_workers"] = args.num_workers
+
+        exp_config["custom_eval_function"] = nash_conv
+        exp_config["evaluation_config"] = exp_config.get("evaluation_config", {
+            "in_evaluation": True,
+        })
 
         # Add intrinsic reward logging
         experiment["config"]["callbacks"] = {

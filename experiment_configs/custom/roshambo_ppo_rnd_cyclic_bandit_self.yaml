@@ -1,0 +1,62 @@
+rnd_cyclic_bandit_self:
+    run: PPO_CURIOSITY
+    stop:
+        timesteps_total: 200000
+    checkpoint_at_end: True
+    checkpoint_freq: 200
+    num_samples: 2
+    config:
+        evaluation_interval: 1
+        # === Environment ===
+        env: roshambo
+        env_config:
+            transitive_actions: 0
+            cyclic_actions: 3
+            num_contexts: 1
+            eval_steps: 100
+        # === Curiosity ===
+        model:
+            custom_options: 
+                weight: 0.5
+                decay: 0.2
+                burn_in: 1600
+                delay: 800
+                curiosity_module: RND
+                curiosity_config:
+                    fcnet_activation: relu
+                    fcnet_hiddens:
+                        grid_search:
+                            - [64, 64]
+                            - [128, 128]
+                    fcnet_outputs: 32
+                    agent_action: True
+                    joint_action: False
+        # === Intrinsic PPO ===
+        intrinsic_gamma: 0.95
+        intrinsic_lambda: 0.95
+        num_agents: 2
+        # === Self Play ===
+        self_play:
+            burn_in: True
+            round:
+                timesteps_total:
+                    grid_search:
+                        - 10000
+                        - 20000
+        # === PPO ===
+        lambda: 0.95
+        gamma: 0.99
+        entropy_coeff:
+            grid_search:
+                - 0.01
+                - 0.001
+        clip_param: 0.1
+        lr:
+            grid_search:
+                - 0.0001
+                - 0.000001
+        num_sgd_iter: 8
+        sgd_minibatch_size: 32
+        train_batch_size: 160
+        rollout_fragment_length: 40
+        batch_mode: complete_episodes
