@@ -25,9 +25,9 @@ def parse_args():
                         help="path to save training results")
     parser.add_argument("--num-cpus", type=int, default=7,
                         help="the maximum number of CPUs ray is allowed to us, useful for running locally")
-    parser.add_argument("--num-gpus", type=int, default=0,
+    parser.add_argument("--num-gpus", type=int, default=1,
                         help="the maximum number of GPUs ray is allowed to use")
-    parser.add_argument("--num-workers", type=int, default=3,
+    parser.add_argument("--num-workers", type=int, default=5,
                         help="the number of parallel workers per experiment")
     parser.add_argument("--nash-conv", action="store_true",
                         help='compute and record NashConv losses if environment supports this')
