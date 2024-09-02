@@ -44,6 +44,10 @@ def create_multi_matrix(config):
     return MultiMatrixEnv(config)
 
 
+def create_single_matrix(config):
+    from environments.single_matrix import SingleMatrixEnv
+    return SingleMatrixEnv(config)
+
 def create_gym_atari(config):
     from environments.gym_atari import GymAtari
     return GymAtari(config)
@@ -66,6 +70,7 @@ register_env("deep_bandit", create_deep_bandit)
 register_env("contextual_bandit", create_contextual_bandit)
 register_env("roshambo", create_roshambo)
 register_env("multi_matrix", create_multi_matrix)
+register_env("single_matrix", create_single_matrix)
 register_env("random_tree", create_random_tree)
 register_env("gym_atari", create_gym_atari)
 register_env("pettingzoo_atari", create_pettingzoo_atari)

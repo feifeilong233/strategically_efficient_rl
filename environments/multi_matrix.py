@@ -1,6 +1,7 @@
 from gym.spaces import Discrete, Box
 import numpy as np
 from scipy.special import rel_entr
+import nashpy as nash
 
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 
@@ -15,15 +16,6 @@ class Context:
 class MultiMatrixEnv(MultiAgentEnv):
 
     def __init__(self, env_config):
-        # Payoff matrices
-        payoff_matrix1 = np.array([[[2, 1], [4, 3], [1, 2]],
-                                   [[3, 2], [1, 4], [4, 0]],
-                                   [[0, 4], [2, 1], [3, 3]]])
-
-        payoff_matrix2 = np.array([[[3, 3], [2, 1], [4, 2]],
-                                   [[1, 4], [3, 3], [2, 1]],
-                                   [[4, 2], [1, 4], [3, 3]]])
-
         payoff_matrix3 = np.array([[[2, 4], [1, 1], [5, 1]],
                                    [[0, 0], [4, 0], [1, 5]],
                                    [[4, 1], [3, 3], [2, 2]]])
@@ -32,12 +24,12 @@ class MultiMatrixEnv(MultiAgentEnv):
                                    [[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]],
                                    [[0.0, 1.0], [1.0, 0.0], [0.5, 0.5]]])  # Rock-Paper-Scissors
 
-        self.payoff_matrices = [payoff_matrix1, payoff_matrix2, payoff_matrix3, payoff_matrix4]
+        self.payoff_matrices = [payoff_matrix3, payoff_matrix4]
 
         num_matrices = len(self.payoff_matrices)
         num_actions = 3
         num_contexts = env_config.get("num_contexts", num_matrices)
-        permute = env_config.get("permute", True)
+        permute = env_config.get("permute", False)
 
         # Define observation and action spaces
         obs_space = Box(0.0, 1.0, shape=(num_contexts,))
@@ -87,6 +79,25 @@ class MultiMatrixEnv(MultiAgentEnv):
 
         return self._current_context.obs, rewards, dones, self._infos
 
+    def compute_nash_equilibrium(self):
+        nash_equilibrium = None
+        # 构建支付矩阵
+        row_payoff_matrix = self._current_matrix[:, :, 0]
+        column_payoff_matrix = self._current_matrix[:, :, 1]
+
+        # 创建博弈对象
+        game = nash.Game(row_payoff_matrix, column_payoff_matrix)
+
+        # 计算混合策略纳什均衡
+        equilibria = game.support_enumeration()
+
+        # 选取第一个均衡（如果存在）
+        for eq in equilibria:
+            nash_equilibrium = eq
+            break
+
+        return nash_equilibrium
+
     def nash_conv(self, policy_dict):
         exploitability = 0.0
         row_values = 0.0
@@ -95,6 +106,9 @@ class MultiMatrixEnv(MultiAgentEnv):
         for idx, context in enumerate(self._contexts):
             # 对应当前上下文找到对应的 payoff 矩阵
             self._current_matrix = self.payoff_matrices[idx]
+
+            # 理论上的混合策略分布
+            theoretical_distribution = self.compute_nash_equilibrium()
 
             row_actions = np.arange(self._current_matrix.shape[0])
             column_actions = np.arange(self._current_matrix.shape[1])
@@ -112,17 +126,88 @@ class MultiMatrixEnv(MultiAgentEnv):
             row_strategy /= np.sum(row_strategy)
             column_strategy /= np.sum(column_strategy)
 
+            # Compute KL divergence for row strategy
+            epsilon = 1e-10
+            kl_divergences = []
+
+            for i in range(len(theoretical_distribution)):
+                smoothed_dist = (np.array(theoretical_distribution[i]) + epsilon) / (
+                            1 + epsilon * len(theoretical_distribution[i]))
+                kl_div = np.sum(rel_entr(row_strategy, smoothed_dist))
+                kl_divergences.append(kl_div)
+
             # Compute exploitabilities and values
             row_payoffs = self._current_matrix[:, :, 0].dot(column_strategy)
             column_payoffs = row_strategy.dot(self._current_matrix[:, :, 1])
 
-            row_values += 1.0 - np.max(column_payoffs)
-            column_values += 1.0 - np.max(row_payoffs)
+            row_expl = np.max(row_payoffs) - np.dot(row_strategy, row_payoffs)
+            column_expl = np.dot(column_strategy, column_payoffs) - np.min(column_payoffs)
 
-            exploitability += np.max(row_payoffs) + np.max(column_payoffs) - 1.0
+            row_values = np.dot(row_strategy, row_payoffs)
+            column_values = np.dot(column_strategy, column_payoffs)
+
+            exploitability = row_expl + column_expl
+
+        avg_kl_divergence = np.mean(kl_divergences)
 
         return {
             "nash_conv": exploitability / len(self._contexts),
             "row_value": row_values / len(self._contexts),
-            "column_value": column_values / len(self._contexts)
+            "column_value": column_values / len(self._contexts),
+            "kl_divergence": avg_kl_divergence,
+        }
+
+    def compute_nash_conv(self, policy_dict, idx):
+        self._current_matrix = self.payoff_matrices[idx]
+
+        # 理论上的混合策略分布
+        theoretical_distribution = self.compute_nash_equilibrium()
+
+        row_actions = np.arange(self._current_matrix.shape[0])
+        column_actions = np.arange(self._current_matrix.shape[1])
+
+        # Compute strategies - use the log-likelihood method provided by RLLib policies
+        row_obs = [self._contexts[idx].obs["row"]] * self._current_matrix.shape[0]
+        column_obs = [self._contexts[idx].obs["column"]] * self._current_matrix.shape[1]
+
+        row_logits = policy_dict["row"].compute_log_likelihoods(row_actions, row_obs)
+        column_logits = policy_dict["column"].compute_log_likelihoods(column_actions, column_obs)
+
+        row_strategy = np.exp(row_logits)
+        column_strategy = np.exp(column_logits)
+
+        row_strategy /= np.sum(row_strategy)
+        column_strategy /= np.sum(column_strategy)
+
+        print(row_strategy, column_strategy)
+
+        # Compute KL divergence for row strategy
+        epsilon = 1e-10
+        kl_divergences = []
+
+        for i in range(len(theoretical_distribution)):
+            smoothed_dist = (np.array(theoretical_distribution[i]) + epsilon) / (
+                    1 + epsilon * len(theoretical_distribution[i]))
+            kl_div = np.sum(rel_entr(row_strategy, smoothed_dist))
+            kl_divergences.append(kl_div)
+
+        # Compute exploitabilities and values
+        row_payoffs = self._current_matrix[:, :, 0].dot(column_strategy)
+        column_payoffs = row_strategy.dot(self._current_matrix[:, :, 1])
+
+        row_expl = np.max(row_payoffs) - np.dot(row_strategy, row_payoffs)
+        column_expl = np.dot(column_strategy, column_payoffs) - np.min(column_payoffs)
+
+        row_values = np.dot(row_strategy, row_payoffs)
+        column_values = np.dot(column_strategy, column_payoffs)
+
+        exploitability = row_expl + column_expl
+
+        avg_kl_divergence = np.mean(kl_divergences)
+
+        return {
+            "nash_conv": exploitability,
+            "row_value": row_values,
+            "column_value": column_values,
+            "kl_divergence": avg_kl_divergence,
         }
