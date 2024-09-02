@@ -102,6 +102,7 @@ class MultiMatrixEnv(MultiAgentEnv):
         exploitability = 0.0
         row_values = 0.0
         column_values = 0.0
+        avg_kl_divergence = 0.0
 
         for idx, context in enumerate(self._contexts):
             # 对应当前上下文找到对应的 payoff 矩阵
@@ -143,12 +144,12 @@ class MultiMatrixEnv(MultiAgentEnv):
             row_expl = np.max(row_payoffs) - np.dot(row_strategy, row_payoffs)
             column_expl = np.dot(column_strategy, column_payoffs) - np.min(column_payoffs)
 
-            row_values = np.dot(row_strategy, row_payoffs)
-            column_values = np.dot(column_strategy, column_payoffs)
+            row_values += np.dot(row_strategy, row_payoffs)
+            column_values += np.dot(column_strategy, column_payoffs)
 
-            exploitability = row_expl + column_expl
+            exploitability += row_expl + column_expl
 
-        avg_kl_divergence = np.mean(kl_divergences)
+        avg_kl_divergence += np.mean(kl_divergences)
 
         return {
             "nash_conv": exploitability / len(self._contexts),

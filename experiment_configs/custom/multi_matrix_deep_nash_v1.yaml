@@ -1,0 +1,25 @@
+multi_matrix_contextual_v1:
+  run: DEEP_NASH_V1
+  stop:
+    timesteps_total: 200000
+  checkpoint_at_end: True
+  checkpoint_freq: 100
+  num_samples: 1
+  config:
+    evaluation_interval: 1
+    # === Environment ===
+    env: multi_matrix
+    env_config:
+      num_contexts: 1
+    # === Deep Nash ===
+    buffer_size: 10000
+    batch_size: 64
+    sampling_ratio: 10
+    learning_rate: 0.000001
+    hidden_sizes: [ 64, 64 ]
+    activation: relu
+    gamma: 0.95
+    beta: 1.0
+    implicit_exploration: 0.05
+    share_layers: True
+    rollout_fragment_length: 40

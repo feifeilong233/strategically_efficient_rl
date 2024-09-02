@@ -1,5 +1,7 @@
 import ray
 from algorithms.agents.ppo.ppo import PPOTrainer
+from algorithms.agents.deep_nash_v2.deep_nash_v2 import DeepNash as DeepNash_v2
+from algorithms.agents.deep_nash_v1.deep_nash_v1 import DeepNash as DeepNash_v1
 from ray.tune.registry import ENV_CREATOR, _global_registry
 
 import yaml
@@ -11,7 +13,7 @@ ray.init(num_cpus=4, num_gpus=1)
 
 def main():
     EXPERIMENTS = dict()
-    with open("experiment_configs/custom/multi_matrix_ppo_contextual_rnd_self.yaml") as f:
+    with open("experiment_configs/custom/multi_matrix_deep_nash_v2.yaml") as f:
         EXPERIMENTS.update(yaml.load(f, Loader=yaml.FullLoader))
 
     experiment = next(iter(EXPERIMENTS.values()))
@@ -35,8 +37,9 @@ def main():
     exp_config["multiagent"] = {"policies": policies,
                                 "policy_mapping_fn": lambda pid: f"policy_{pid}"}
 
-    ppo_trainer = PPOTrainer(config=exp_config)
-    checkpoint_path = "2024-08-28/multi_2matrix_contextual/PPO_CURIOSITY_multi_matrix_0_2024-08-29_17-14-46vjhn6wws/checkpoint_100/checkpoint-100"
+    ppo_trainer = DeepNash_v2(config=exp_config)
+    # checkpoint_path = "2024-08-28/multi_2matrix_contextual/PPO_CURIOSITY_multi_matrix_1_2024-08-29_17-46-59_gh67a1x/checkpoint_1000/checkpoint-1000"
+    checkpoint_path = "2024-09-02/multi_matrix_2contextual/DEEP_NASH_V2_multi_matrix_0_2024-09-02_12-02-46pgq2a7mf/checkpoint_1500/checkpoint-1500"
     ppo_trainer.restore(checkpoint_path)
 
     # 获取所有代理的策略映射
@@ -63,6 +66,9 @@ def main():
 
             conv = test_env.compute_nash_conv(policy_dict, context_idx)  # 传入policy_dict
             print(f"Nash Conv: {conv}")
+
+            nash_conv = test_env.nash_conv(policy_dict)  # 传入policy_dict
+            print(f"nash_conv: {nash_conv}")
 
             # 执行动作并获取新状态
             observation, rewards, done, info = test_env.step(actions)
