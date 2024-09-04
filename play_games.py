@@ -39,7 +39,7 @@ def main():
 
     ppo_trainer = DeepNash_v2(config=exp_config)
     # checkpoint_path = "2024-09-02/multi_matrix_2contextual/DEEP_NASH_V2_multi_matrix_0_2024-09-02_12-02-46pgq2a7mf/checkpoint_1500/checkpoint-1500"
-    checkpoint_path = "2024-09-03/multi_matrix_2contextual_eval/DEEP_NASH_V2_multi_matrix_1_2024-09-03_18-34-14ow4aw35e/checkpoint_2000/checkpoint-2000"
+    checkpoint_path = "2024-09-04/multi_matrix_contextual_self/DEEP_NASH_V2_multi_matrix_1_2024-09-04_12-09-46__swrstx/checkpoint_200/checkpoint-200"
     ppo_trainer.restore(checkpoint_path)
 
     # 获取所有代理的策略映射
@@ -52,7 +52,7 @@ def main():
         observation = test_env.reset(context_idx=context_idx)
         done = False
         while not done:
-            agent_ids = ["row", "column"]
+            agent_ids = ["0", "1"]
             # 计算每个代理的动作
             actions = {}
             # 创建一个空的policy_dict

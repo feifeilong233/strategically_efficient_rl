@@ -41,15 +41,15 @@ class MultiMatrixEnv(MultiAgentEnv):
 
         # Define observation and action spaces
         obs_space = Box(0.0, 1.0, shape=(num_contexts,))
-        self.observation_space_dict = {"row": obs_space, "column": obs_space}
+        self.observation_space_dict = {"0": obs_space, "1": obs_space}
 
         action_space = Discrete(num_actions)
-        self.action_space_dict = {"row": action_space, "column": action_space}
+        self.action_space_dict = {"0": action_space, "1": action_space}
 
         # Define default observations
-        self._dones = {"row": True, "column": True, "__all__": True}
-        self._not_dones = {"row": False, "column": False, "__all__": False}
-        self._infos = {"row": {}, "column": {}}
+        self._dones = {"0": True, "1": True, "__all__": True}
+        self._not_dones = {"0": False, "1": False, "__all__": False}
+        self._infos = {"0": {}, "1": {}}
 
         # Define contexts and permutations
         self._contexts = []
@@ -57,7 +57,7 @@ class MultiMatrixEnv(MultiAgentEnv):
         for idx in range(num_contexts):
             obs = np.zeros(num_contexts)
             obs[idx] = 1.0
-            obs = {"row": obs, "column": obs}
+            obs = {"0": obs, "1": obs}
             permutation = np.random.permutation(num_actions) if permute else np.arange(num_actions)
             self._contexts.append(Context(obs, permutation))
 
@@ -72,8 +72,8 @@ class MultiMatrixEnv(MultiAgentEnv):
         return self._current_context.obs
 
     def step(self, action_dict):
-        row_action = action_dict["row"]
-        column_action = action_dict["column"]
+        row_action = action_dict["0"]
+        column_action = action_dict["1"]
 
         row_action = self._current_context.permutation[row_action]
         column_action = self._current_context.permutation[column_action]
@@ -83,7 +83,7 @@ class MultiMatrixEnv(MultiAgentEnv):
 
         dones = self._dones
 
-        rewards = {"row": row_payoff, "column": column_payoff}
+        rewards = {"0": row_payoff, "1": column_payoff}
 
         return self._current_context.obs, rewards, dones, self._infos
 
@@ -123,11 +123,11 @@ class MultiMatrixEnv(MultiAgentEnv):
             column_actions = np.arange(self._current_matrix.shape[1])
 
             # Compute strategies - use the log-likelihood method provided by RLLib policies
-            row_obs = [context.obs["row"]] * self._current_matrix.shape[0]
-            column_obs = [context.obs["column"]] * self._current_matrix.shape[1]
+            row_obs = [context.obs["0"]] * self._current_matrix.shape[0]
+            column_obs = [context.obs["1"]] * self._current_matrix.shape[1]
 
-            row_logits = policy_dict["row"].compute_log_likelihoods(row_actions, row_obs)
-            column_logits = policy_dict["column"].compute_log_likelihoods(column_actions, column_obs)
+            row_logits = policy_dict["0"].compute_log_likelihoods(row_actions, row_obs)
+            column_logits = policy_dict["1"].compute_log_likelihoods(column_actions, column_obs)
 
             row_strategy = np.exp(row_logits)
             column_strategy = np.exp(column_logits)
@@ -176,11 +176,11 @@ class MultiMatrixEnv(MultiAgentEnv):
         column_actions = np.arange(self._current_matrix.shape[1])
 
         # Compute strategies - use the log-likelihood method provided by RLLib policies
-        row_obs = [self._contexts[idx].obs["row"]] * self._current_matrix.shape[0]
-        column_obs = [self._contexts[idx].obs["column"]] * self._current_matrix.shape[1]
+        row_obs = [self._contexts[idx].obs["0"]] * self._current_matrix.shape[0]
+        column_obs = [self._contexts[idx].obs["1"]] * self._current_matrix.shape[1]
 
-        row_logits = policy_dict["row"].compute_log_likelihoods(row_actions, row_obs)
-        column_logits = policy_dict["column"].compute_log_likelihoods(column_actions, column_obs)
+        row_logits = policy_dict["0"].compute_log_likelihoods(row_actions, row_obs)
+        column_logits = policy_dict["1"].compute_log_likelihoods(column_actions, column_obs)
 
         row_strategy = np.exp(row_logits)
         column_strategy = np.exp(column_logits)
