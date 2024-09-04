@@ -13,7 +13,7 @@ ray.init(num_cpus=4, num_gpus=1)
 
 def main():
     EXPERIMENTS = dict()
-    with open("experiment_configs/custom/multi_matrix_deep_nash_v2.yaml") as f:
+    with open("experiment_configs/custom/multi_matrix_deep_nash_ppo.yaml") as f:
         EXPERIMENTS.update(yaml.load(f, Loader=yaml.FullLoader))
 
     experiment = next(iter(EXPERIMENTS.values()))
@@ -38,8 +38,8 @@ def main():
                                 "policy_mapping_fn": lambda pid: f"policy_{pid}"}
 
     ppo_trainer = DeepNash_v2(config=exp_config)
-    # checkpoint_path = "2024-08-28/multi_2matrix_contextual/PPO_CURIOSITY_multi_matrix_1_2024-08-29_17-46-59_gh67a1x/checkpoint_1000/checkpoint-1000"
-    checkpoint_path = "2024-09-02/multi_matrix_2contextual/DEEP_NASH_V2_multi_matrix_0_2024-09-02_12-02-46pgq2a7mf/checkpoint_1500/checkpoint-1500"
+    # checkpoint_path = "2024-09-02/multi_matrix_2contextual/DEEP_NASH_V2_multi_matrix_0_2024-09-02_12-02-46pgq2a7mf/checkpoint_1500/checkpoint-1500"
+    checkpoint_path = "2024-09-03/multi_matrix_2contextual_eval/DEEP_NASH_V2_multi_matrix_1_2024-09-03_18-34-14ow4aw35e/checkpoint_2000/checkpoint-2000"
     ppo_trainer.restore(checkpoint_path)
 
     # 获取所有代理的策略映射

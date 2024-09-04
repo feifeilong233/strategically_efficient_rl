@@ -31,6 +31,8 @@ def parse_args():
                         help="the number of parallel workers per experiment")
     parser.add_argument("--nash-conv", action="store_true",
                         help='compute and record NashConv losses if environment supports this')
+    parser.add_argument("--restore", type=str, default=None,
+                        help="Path to a checkpoint to restore.")
 
     
     return parser.parse_args()
@@ -167,6 +169,11 @@ def main(args):
             "intra_op_parallelism_threads": 1,
             "inter_op_parallelism_threads": 1,
         }
+
+        # Restore from checkpoint if provided
+        if args.restore:
+            # Add restore path to the experiment
+            experiment["restore"] = args.restore
 
     ray.init(num_cpus=args.num_cpus, num_gpus=args.num_gpus)
     run_experiments(EXPERIMENTS, verbose=1)

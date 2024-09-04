@@ -16,6 +16,14 @@ class Context:
 class MultiMatrixEnv(MultiAgentEnv):
 
     def __init__(self, env_config):
+        payoff_matrix1 = np.array([[[1, -1], [-2, 2], [0, 0]],
+                                   [[0, 0], [1, -1], [-1, 1]],
+                                   [[-1, 1], [2, -2], [1, -1]]])
+
+        payoff_matrix2 = np.array([[[2, -2], [-1, 1], [-3, 3]],
+                                   [[-2, 2], [3, -3], [1, -1]],
+                                   [[-1, 1], [-3, 3], [2, -2]]])
+
         payoff_matrix3 = np.array([[[2, 4], [1, 1], [5, 1]],
                                    [[0, 0], [4, 0], [1, 5]],
                                    [[4, 1], [3, 3], [2, 2]]])
@@ -24,7 +32,7 @@ class MultiMatrixEnv(MultiAgentEnv):
                                    [[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]],
                                    [[0.0, 1.0], [1.0, 0.0], [0.5, 0.5]]])  # Rock-Paper-Scissors
 
-        self.payoff_matrices = [payoff_matrix3, payoff_matrix4]
+        self.payoff_matrices = [payoff_matrix1, payoff_matrix2, payoff_matrix3, payoff_matrix4]
 
         num_matrices = len(self.payoff_matrices)
         num_actions = 3
@@ -155,7 +163,7 @@ class MultiMatrixEnv(MultiAgentEnv):
             "nash_conv": exploitability / len(self._contexts),
             "row_value": row_values / len(self._contexts),
             "column_value": column_values / len(self._contexts),
-            "kl_divergence": avg_kl_divergence,
+            "kl_divergence": avg_kl_divergence / len(self._contexts),
         }
 
     def compute_nash_conv(self, policy_dict, idx):

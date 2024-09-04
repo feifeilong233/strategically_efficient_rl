@@ -14,6 +14,8 @@ from ray.rllib.utils.explained_variance import explained_variance
 from ray.rllib.utils.tf_ops import make_tf_callable
 from ray.rllib.utils import try_import_tf
 
+from algorithms.agents.deep_nash_v2.deep_nash_model_v2 import NashModel
+
 tf = try_import_tf()
 
 from algorithms.agents.intrinsic import compute_advantages_intrinsic, \
@@ -343,6 +345,15 @@ def make_model(policy, obs_space, action_space, config):
     else:
         return CuriosityDense(obs_space, action_space, logit_dim, model_config, "default_model")
 
+def make_model_nash(policy, obs_space, action_space, config):
+    exploration = not config.get("in_evaluation", False)
+
+    model_config = config.get("model", {}).copy()
+    model_config["intrinsic_gamma"] = config.get("gamma", 0.95)
+    model_config["vf_share_layers"] = config.get("vf_share_layers", False)
+    model_config["num_agents"] = config.get("num_agents", 1)
+
+    return NashModel(obs_space, action_space, action_space.n, model_config, "nash_model", exploration)
 
 PPOTFPolicy = build_tf_policy(
     name="PPOTFIntrinsicPolicy",
@@ -355,7 +366,7 @@ PPOTFPolicy = build_tf_policy(
     gradients_fn=clip_gradients,
     before_init=setup_config,
     before_loss_init=setup_mixins,
-    make_model=make_model,
+    make_model=make_model_nash,
     mixins=[
         LearningRateSchedule, EntropyCoeffSchedule, KLCoeffMixin,
         ValueNetworkMixin
