@@ -2,16 +2,16 @@ multi_matrix_2contextual_eval:
   run: DEEP_NASH_V2
   stop:
     timesteps_total: 1000000
-  checkpoint_at_end: true
+  checkpoint_at_end: True
   checkpoint_freq: 100
   num_samples: 2
   config:
-    in_evaluation: true
+#    in_evaluation: true
     evaluation_interval: 1
     # === Environment ===
     env: multi_matrix
     env_config:
-      num_contexts: 4
+      num_contexts: 3
     # === Curiosity ===
     model:
       custom_options:
